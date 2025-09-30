@@ -105,7 +105,7 @@ class MLPClassifierDeep(nn.Module):
         w: int = 64,
         num_classes: int = 6,
         hidden_dim: int = 128,  # Reduced from 512 to keep model size under 10MB
-        num_layers: int = 4,
+        num_layers: int = 6,
     ):
         """
         An MLP with multiple hidden layers
