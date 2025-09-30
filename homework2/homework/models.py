@@ -104,7 +104,7 @@ class MLPClassifierDeep(nn.Module):
         h: int = 64,
         w: int = 64,
         num_classes: int = 6,
-        hidden_dim: int = 128,  # Reduced from 512 to keep model size under 10MB
+        hidden_dim: int = 160,  # Updated to match trained model
         num_layers: int = 6,
         dropout_rate: float = 0.0,  # Default 0.0 for grader compatibility
     ):
