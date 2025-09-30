@@ -106,7 +106,6 @@ class MLPClassifierDeep(nn.Module):
         num_classes: int = 6,
         hidden_dim: int = 160,  # Updated to match trained model
         num_layers: int = 6,
-        dropout_rate: float = 0.0,  # Default 0.0 for grader compatibility
     ):
         """
         An MLP with multiple hidden layers
@@ -119,7 +118,6 @@ class MLPClassifierDeep(nn.Module):
         Hint - you can add more arguments to the constructor such as:
             hidden_dim: int, size of hidden layers
             num_layers: int, number of hidden layers
-            dropout_rate: float, dropout probability
         """
         super().__init__()
         input_size = 3 * h * w
@@ -128,15 +126,14 @@ class MLPClassifierDeep(nn.Module):
 
         # First layer: input to hidden
         layers.append(nn.Linear(input_size, hidden_dim))
-
         layers.append(nn.ReLU())
-        layers.append(nn.Dropout(dropout_rate))
+        layers.append(nn.Dropout(0.0))
 
         # Middle layers: hidden to hidden
         for _ in range(num_layers - 2):
             layers.append(nn.Linear(hidden_dim, hidden_dim))
             layers.append(nn.ReLU())
-            layers.append(nn.Dropout(dropout_rate))
+            layers.append(nn.Dropout(0.0))
 
         # Last layer: hidden to output (no dropout on output)
         layers.append(nn.Linear(hidden_dim, num_classes))
