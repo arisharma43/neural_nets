@@ -46,7 +46,12 @@ def train(
     # create loss function and optimizer
     loss_func = ClassificationLoss()
     # This code was written by GitHub Copilot
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
+    
+    # Add learning rate scheduler for better convergence
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode='max', factor=0.5, patience=10, verbose=True
+    )
 
     global_step = 0
 
@@ -88,12 +93,15 @@ def train(
         logger.add_scalar("train/accuracy", epoch_train_acc, global_step - 1)
         logger.add_scalar("val/accuracy", epoch_val_acc, global_step - 1)
 
+        scheduler.step(epoch_val_acc)
+
         # print on first, last, every 10th epoch
         if epoch == 0 or epoch == num_epoch - 1 or (epoch + 1) % 10 == 0:
             print(
                 f"Epoch {epoch + 1:2d} / {num_epoch:2d}: "
                 f"train_acc={epoch_train_acc:.4f} "
-                f"val_acc={epoch_val_acc:.4f}"
+                f"val_acc={epoch_val_acc:.4f} "
+                f"lr={optimizer.param_groups[0]['lr']:.6f}"
             )
 
     # save and overwrite the model in the root directory for grading
