@@ -39,9 +39,9 @@ def train(
     model.train()
 
     train_data = load_data(
-        "classification_data/train", shuffle=True, batch_size=batch_size, num_workers=2
+        "data/train", shuffle=True, batch_size=batch_size, num_workers=2
     )
-    val_data = load_data("classification_data/val", shuffle=False)
+    val_data = load_data("data/val", shuffle=False)
 
     # create loss function and optimizer
     loss_func = ClassificationLoss()
