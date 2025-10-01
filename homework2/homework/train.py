@@ -47,10 +47,10 @@ def train(
     loss_func = ClassificationLoss()
     # This code was written by GitHub Copilot
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
-    
+
     # Add learning rate scheduler for better convergence
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode='max', factor=0.5, patience=10, verbose=True
+        optimizer, mode="max", factor=0.5, patience=10
     )
 
     global_step = 0

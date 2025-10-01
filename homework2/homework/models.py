@@ -104,7 +104,7 @@ class MLPClassifierDeep(nn.Module):
         h: int = 64,
         w: int = 64,
         num_classes: int = 6,
-        hidden_dim: int = 160,  # Updated to match trained model
+        hidden_dim: int = 160,
         num_layers: int = 6,
     ):
         """
