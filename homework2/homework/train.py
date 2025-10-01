@@ -73,7 +73,7 @@ def train(
             train_acc = compute_accuracy(logits, label)
             metrics["train_acc"].append(train_acc.item())
 
-            logger.add_scalar("train/loss", loss.item(), global_step)
+            logger.add_scalar("train_loss", loss.item(), global_step)
 
             global_step += 1
 
@@ -90,8 +90,8 @@ def train(
         epoch_train_acc = torch.as_tensor(metrics["train_acc"]).mean()
         epoch_val_acc = torch.as_tensor(metrics["val_acc"]).mean()
 
-        logger.add_scalar("train/accuracy", epoch_train_acc, global_step - 1)
-        logger.add_scalar("val/accuracy", epoch_val_acc, global_step - 1)
+        logger.add_scalar("train_accuracy", epoch_train_acc, global_step - 1)
+        logger.add_scalar("val_accuracy", epoch_val_acc, global_step - 1)
 
         scheduler.step(epoch_val_acc)
 
