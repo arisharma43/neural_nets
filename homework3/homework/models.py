@@ -159,8 +159,8 @@ class MLPClassifierDeepResidual(nn.Module):
         h: int = 64,
         w: int = 64,
         num_classes: int = 6,
-        hidden_dim: int = 512,
-        num_layers: int = 5,
+        hidden_dim: int = 256,
+        num_layers: int = 4,
     ):
         """
         An MLP with multiple hidden layers and residual connections
@@ -237,10 +237,10 @@ class ViTClassifier(nn.Module):
         w: int = 64,
         num_classes: int = 6,
         patch_size: int = 8,
-        embed_dim: int = 256,
-        num_layers: int = 6,
-        num_heads: int = 8,
-        mlp_ratio: float = 4.0,
+        embed_dim: int = 192,
+        num_layers: int = 4,
+        num_heads: int = 6,
+        mlp_ratio: float = 3.0,
         dropout: float = 0.1,
     ):
         """
