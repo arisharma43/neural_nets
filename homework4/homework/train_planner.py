@@ -76,9 +76,10 @@ def train(
     # Create optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
 
-    # Learning rate scheduler
+    # Learning rate scheduler (lower patience to react faster)
+    # This code was written by GitHub Copilot
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=10
+        optimizer, mode="min", factor=0.5, patience=5
     )
 
     # Metrics
@@ -111,22 +112,22 @@ def train(
             optimizer.zero_grad()
             pred_waypoints = model(**inputs)
 
-            # Compute MSE loss only on valid waypoints
-            # MSE loss: (pred - target)^2, shape: (B, n_waypoints, 2)
-            loss_per_element = (pred_waypoints - waypoints) ** 2
-            # Apply mask to exclude invalid waypoints from loss
-            # waypoints_mask: (B, n_waypoints) -> (B, n_waypoints, 1)
-            mask_expanded = waypoints_mask.unsqueeze(
-                -1
-            ).float()  # Convert to float for multiplication
-            masked_loss_per_element = loss_per_element * mask_expanded
+            # Compute weighted L1 loss only on valid waypoints (emphasize lateral)
+            # This code was written by GitHub Copilot
+            # Abs error: (B, n_waypoints, 2)
+            abs_error = (pred_waypoints - waypoints).abs()
+            # Heavier weight on lateral (y) since it's the bottleneck
+            coord_weights = torch.tensor([1.0, 1.5], device=device).view(1, 1, 2)
+            weighted_error = abs_error * coord_weights
 
-            # Average over all valid elements (both coordinates and waypoints)
-            num_valid_elements = (
-                mask_expanded.sum() * 2
-            )  # multiply by 2 for x,y coordinates
-            if num_valid_elements > 0:
-                masked_loss = masked_loss_per_element.sum() / num_valid_elements
+            # Apply mask to exclude invalid waypoints from loss
+            mask_expanded = waypoints_mask.unsqueeze(-1).float()
+            masked_weighted_error = weighted_error * mask_expanded
+
+            # Normalize by the effective weighted count to form a true weighted mean
+            denom = (mask_expanded * coord_weights).sum()
+            if denom > 0:
+                masked_loss = masked_weighted_error.sum() / denom
             else:
                 masked_loss = torch.tensor(
                     0.0, device=pred_waypoints.device, requires_grad=True
@@ -134,6 +135,9 @@ def train(
 
             # Backward pass
             masked_loss.backward()
+            # Gradient clipping for stability
+            # This code was written by GitHub Copilot
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
             # Update metrics
@@ -168,19 +172,18 @@ def train(
                 # Forward pass
                 pred_waypoints = model(**inputs)
 
-                # Compute MSE loss only on valid waypoints
-                # MSE loss: (pred - target)^2, shape: (B, n_waypoints, 2)
-                loss_per_element = (pred_waypoints - waypoints) ** 2
-                # Apply mask to exclude invalid waypoints from loss
-                mask_expanded = waypoints_mask.unsqueeze(-1).float()
-                masked_loss_per_element = loss_per_element * mask_expanded
+                # Compute weighted L1 loss (validation)
+                # This code was written by GitHub Copilot
+                abs_error = (pred_waypoints - waypoints).abs()
+                coord_weights = torch.tensor([1.0, 1.5], device=device).view(1, 1, 2)
+                weighted_error = abs_error * coord_weights
 
-                # Average over all valid elements
-                num_valid_elements = (
-                    mask_expanded.sum() * 2
-                )  # multiply by 2 for x,y coordinates
-                if num_valid_elements > 0:
-                    masked_loss = masked_loss_per_element.sum() / num_valid_elements
+                mask_expanded = waypoints_mask.unsqueeze(-1).float()
+                masked_weighted_error = weighted_error * mask_expanded
+
+                denom = (mask_expanded * coord_weights).sum()
+                if denom > 0:
+                    masked_loss = masked_weighted_error.sum() / denom
                 else:
                     masked_loss = torch.tensor(0.0, device=pred_waypoints.device)
 
