@@ -209,3 +209,5 @@ __marimo__/
 */classification_data
 data/
 *.ipynb
+
+__MACOSX/
