@@ -28,7 +28,7 @@ def train(
 ):
     """
     Train a planner model.
-    
+
     This code was written by GitHub Copilot
     """
     if torch.cuda.is_available():
@@ -64,7 +64,7 @@ def train(
         batch_size=batch_size,
         num_workers=2,
     )
-    
+
     val_data = load_data(
         f"{dataset_path}/val",
         transform_pipeline=transform_pipeline,
@@ -75,10 +75,10 @@ def train(
 
     # Create optimizer
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr, weight_decay=1e-4)
-    
+
     # Learning rate scheduler
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=10, verbose=True
+        optimizer, mode="min", factor=0.5, patience=10
     )
 
     # Metrics
@@ -86,7 +86,7 @@ def train(
     val_metric = PlannerMetric()
 
     global_step = 0
-    best_val_loss = float('inf')
+    best_val_loss = float("inf")
 
     # Training loop
     for epoch in range(num_epoch):
@@ -103,29 +103,35 @@ def train(
                 track_left = batch["track_left"].to(device)
                 track_right = batch["track_right"].to(device)
                 inputs = {"track_left": track_left, "track_right": track_right}
-                
+
             waypoints = batch["waypoints"].to(device)
             waypoints_mask = batch["waypoints_mask"].to(device)
 
             # Forward pass
             optimizer.zero_grad()
             pred_waypoints = model(**inputs)
-            
+
             # Compute MSE loss only on valid waypoints
-            # MSE loss: (pred - target)^2, shape: (B, n_waypoints, 2)  
+            # MSE loss: (pred - target)^2, shape: (B, n_waypoints, 2)
             loss_per_element = (pred_waypoints - waypoints) ** 2
             # Apply mask to exclude invalid waypoints from loss
             # waypoints_mask: (B, n_waypoints) -> (B, n_waypoints, 1)
-            mask_expanded = waypoints_mask.unsqueeze(-1).float()  # Convert to float for multiplication
+            mask_expanded = waypoints_mask.unsqueeze(
+                -1
+            ).float()  # Convert to float for multiplication
             masked_loss_per_element = loss_per_element * mask_expanded
-            
+
             # Average over all valid elements (both coordinates and waypoints)
-            num_valid_elements = mask_expanded.sum() * 2  # multiply by 2 for x,y coordinates
+            num_valid_elements = (
+                mask_expanded.sum() * 2
+            )  # multiply by 2 for x,y coordinates
             if num_valid_elements > 0:
                 masked_loss = masked_loss_per_element.sum() / num_valid_elements
             else:
-                masked_loss = torch.tensor(0.0, device=pred_waypoints.device, requires_grad=True)
-            
+                masked_loss = torch.tensor(
+                    0.0, device=pred_waypoints.device, requires_grad=True
+                )
+
             # Backward pass
             masked_loss.backward()
             optimizer.step()
@@ -144,7 +150,7 @@ def train(
         model.eval()
         val_metric.reset()
         epoch_val_losses = []
-        
+
         with torch.no_grad():
             for batch in val_data:
                 # Move data to device
@@ -155,27 +161,29 @@ def train(
                     track_left = batch["track_left"].to(device)
                     track_right = batch["track_right"].to(device)
                     inputs = {"track_left": track_left, "track_right": track_right}
-                    
+
                 waypoints = batch["waypoints"].to(device)
                 waypoints_mask = batch["waypoints_mask"].to(device)
 
                 # Forward pass
                 pred_waypoints = model(**inputs)
-                
+
                 # Compute MSE loss only on valid waypoints
                 # MSE loss: (pred - target)^2, shape: (B, n_waypoints, 2)
                 loss_per_element = (pred_waypoints - waypoints) ** 2
                 # Apply mask to exclude invalid waypoints from loss
                 mask_expanded = waypoints_mask.unsqueeze(-1).float()
                 masked_loss_per_element = loss_per_element * mask_expanded
-                
+
                 # Average over all valid elements
-                num_valid_elements = mask_expanded.sum() * 2  # multiply by 2 for x,y coordinates
+                num_valid_elements = (
+                    mask_expanded.sum() * 2
+                )  # multiply by 2 for x,y coordinates
                 if num_valid_elements > 0:
                     masked_loss = masked_loss_per_element.sum() / num_valid_elements
                 else:
                     masked_loss = torch.tensor(0.0, device=pred_waypoints.device)
-                
+
                 # Update metrics
                 val_metric.add(pred_waypoints, waypoints, waypoints_mask)
                 epoch_val_losses.append(masked_loss.item())
@@ -183,12 +191,14 @@ def train(
         # Compute epoch metrics
         train_metrics = train_metric.compute()
         val_metrics = val_metric.compute()
-        
+
         avg_train_loss = np.mean(epoch_train_losses)
         avg_val_loss = np.mean(epoch_val_losses)
 
         # Log epoch metrics
-        log_metrics(logger, {"loss": avg_train_loss, **train_metrics}, epoch, "epoch/train")
+        log_metrics(
+            logger, {"loss": avg_train_loss, **train_metrics}, epoch, "epoch/train"
+        )
         log_metrics(logger, {"loss": avg_val_loss, **val_metrics}, epoch, "epoch/val")
 
         # Learning rate scheduling
@@ -217,8 +227,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument("--exp_dir", type=str, default="logs")
-    parser.add_argument("--model_name", type=str, required=True, 
-                       choices=["mlp_planner", "transformer_planner", "vit_planner"])
+    parser.add_argument(
+        "--model_name",
+        type=str,
+        required=True,
+        choices=["mlp_planner", "transformer_planner", "vit_planner"],
+    )
     parser.add_argument("--num_epoch", type=int, default=100)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--batch_size", type=int, default=128)
@@ -226,11 +240,21 @@ if __name__ == "__main__":
     parser.add_argument("--dataset_path", type=str, default="drive_data")
 
     # Model-specific hyperparameters
-    parser.add_argument("--hidden_dim", type=int, default=256, help="Hidden dimension for MLP")
-    parser.add_argument("--d_model", type=int, default=64, help="Model dimension for Transformer")
-    parser.add_argument("--num_layers", type=int, default=4, help="Number of transformer layers")
-    parser.add_argument("--num_heads", type=int, default=8, help="Number of attention heads")
-    parser.add_argument("--embed_dim", type=int, default=256, help="Embedding dimension for ViT")
+    parser.add_argument(
+        "--hidden_dim", type=int, default=256, help="Hidden dimension for MLP"
+    )
+    parser.add_argument(
+        "--d_model", type=int, default=64, help="Model dimension for Transformer"
+    )
+    parser.add_argument(
+        "--num_layers", type=int, default=4, help="Number of transformer layers"
+    )
+    parser.add_argument(
+        "--num_heads", type=int, default=8, help="Number of attention heads"
+    )
+    parser.add_argument(
+        "--embed_dim", type=int, default=256, help="Embedding dimension for ViT"
+    )
     parser.add_argument("--patch_size", type=int, default=8, help="Patch size for ViT")
 
     args = parser.parse_args()
